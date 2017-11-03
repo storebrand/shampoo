@@ -46,7 +46,7 @@ public final class MTOM {
         boolean nextPart = stream.skipPreamble();
         while (nextPart) {
             Map<String, List<String>> headers = parseHeaders(stream.readHeaders());
-            String ctHeader = headers.get("Content-Type").head();
+            String ctHeader = headers.get("content-type").head();
             MediaType type = MediaType.parse(ctHeader);
             // create some output stream
             ByteString data = stream.readBody().readByteString();
@@ -78,9 +78,9 @@ public final class MTOM {
                 String next = scanner.next().trim();
                 String[] parts = next.split("=", 2);
                 if (parts.length == 1) {
-                    map.put(parts[0].trim(), "");
+                    map.put(parts[0].trim().toLowerCase(), "");
                 } else if (parts.length == 2) {
-                    map.put(parts[0].trim(), parts[1].replace("\\\"", ""));
+                    map.put(parts[0].trim().toLowerCase(), parts[1].replace("\\\"", ""));
                 }
             }
         }
