@@ -37,25 +37,25 @@ public final class SoapClient {
     private Either<SoapFault, SoapDocument> soapDoc(SoapRequest req, ResponseBody rb) throws IOException {
         String data = rb.string();
         if (Option.of(rb.contentType()).exists(ct -> ct.subtype().contains("xml"))) {
-            if (logger.isTraceEnabled()) {
-                logger.trace("response is:\n{}", data);
+            if (logger.isDebugEnabled()) {
+                logger.debug("response is:\n{}", data);
             }
             return SoapDocument.fromString(data);
         } else {
-            if (logger.isTraceEnabled()) {
-                logger.trace("response data is:\n{}", data);
+            if (logger.isDebugEnabled()) {
+                logger.debug("response data is:\n{}", data);
             }
             return Either.left(SoapFault.server("Not XML from " + req.action.action));
         }
     }
 
     private <A> Either<SoapFault, A> request(SoapRequest req, IOFunction<String, ResponseBody, Either<SoapFault, A>> fromBody) {
-        if (logger.isDebugEnabled()) {
-            logger.debug("SOAP request to {} ", apiURI);
-            logger.debug("Action is '{}'", req.action.action);
+        if (logger.isInfoEnabled()) {
+            logger.info("SOAP request to {} ", apiURI);
+            logger.info("Action is '{}'", req.action.action);
         }
-        if (logger.isTraceEnabled()) {
-            logger.trace("request is:\n{}", req.soapDocument);
+        if (logger.isDebugEnabled()) {
+            logger.debug("request is:\n{}", req.soapDocument);
         }
         try {
             Request request = new Request.Builder()
@@ -84,7 +84,7 @@ public final class SoapClient {
         return MediaType.parse("text/xml; charset=utf-8");
     }
 
-    interface IOFunction<A, B, C> {
+    private interface IOFunction<A, B, C> {
         C apply(A arg1, B arg2) throws IOException;
     }
 }
