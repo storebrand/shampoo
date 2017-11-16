@@ -35,14 +35,17 @@ public final class SoapClient {
     }
 
     private Either<SoapFault, SoapDocument> soapDoc(SoapRequest req, ResponseBody rb) throws IOException {
-        String data = rb.string();
         if (Option.of(rb.contentType()).exists(ct -> ct.subtype().contains("xml"))) {
             if (logger.isDebugEnabled()) {
-                logger.debug("response is:\n{}", data);
+                String data = rb.string();
+                logger.debug("response data is:\n{}", data);
+                return SoapDocument.fromString(data);
+            } else {
+                return SoapDocument.fromStream(rb.byteStream());
             }
-            return SoapDocument.fromString(data);
         } else {
             if (logger.isDebugEnabled()) {
+                String data = rb.string();
                 logger.debug("response data is:\n{}", data);
             }
             return Either.left(SoapFault.server("Not XML from " + req.action.action));
