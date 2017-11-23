@@ -4,9 +4,7 @@ import io.vavr.collection.List;
 import io.vavr.collection.Vector;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
-import org.jdom2.Document;
-import org.jdom2.Element;
-import org.jdom2.Namespace;
+import org.jdom2.*;
 import org.jdom2.xpath.XPathExpression;
 
 import java.math.BigDecimal;
@@ -147,36 +145,47 @@ public final class JDOM2Utils {
     }
 
     public static Element elem(String name, Option<String> value) {
-        Element element = new Element(name);
-        value.forEach(element::setText);
-        return element;
+        return elem(name, value.map(Text::new));
     }
 
     public static Element elem(String name, Namespace ns, Option<String> value) {
-        Element element = new Element(name, ns);
-        value.forEach(element::setText);
-        return element;
+        return elem(name, ns, value.map(Text::new));
     }
 
     public static Element elem(String name, Element... content) {
-        return new Element(name).addContent(Arrays.asList(content));
+        return elem(name, Arrays.asList(content));
     }
 
     public static Element elem(String name, Namespace ns, Element... content) {
-        return new Element(name, ns).addContent(Arrays.asList(content));
+        return elem(name, ns, Arrays.asList(content));
     }
 
-    public static Element elem(String name, Iterable<Element> content) {
+    public static Element elem(String name, Namespace ns, Iterable<Namespace> additional, Element... content) {
+        return elem(name, ns, additional, Arrays.asList(content));
+    }
+
+    public static <C extends Content> Element elem(String name, Iterable<C> content) {
         Element element = new Element(name);
-        for (Element e : content) {
+        for (C e : content) {
             element.addContent(e);
         }
         return element;
     }
 
-    public static Element elem(String name, Namespace ns, Iterable<Element> content) {
+    public static <C extends Content> Element elem(String name, Namespace ns, Iterable<C> content) {
         Element element = new Element(name, ns);
-        for (Element e : content) {
+        for (C e : content) {
+            element.addContent(e);
+        }
+        return element;
+    }
+
+    public static <C extends Content> Element elem(String name, Namespace ns, Iterable<Namespace> additional, Iterable<C> content) {
+        Element element = new Element(name, ns);
+        for (Namespace namespace : additional) {
+            element.addNamespaceDeclaration(namespace);
+        }
+        for (C e : content) {
             element.addContent(e);
         }
         return element;
