@@ -2,6 +2,7 @@ package no.storebrand.shampoo;
 
 import io.vavr.collection.List;
 import io.vavr.control.Either;
+import io.vavr.control.Option;
 import okhttp3.MediaType;
 import okio.ByteString;
 
@@ -47,6 +48,7 @@ public final class MTOM {
         while (nextPart) {
             Map<String, List<String>> headers = parseHeaders(stream.readHeaders());
             String ctHeader = headers.get("content-type").head();
+            String idHeader = headers.get("content-id").head();
             MediaType type = MediaType.parse(ctHeader);
             // create some output stream
             ByteString data = stream.readBody().readByteString();
@@ -54,7 +56,7 @@ public final class MTOM {
             if (isCompatible(type, MediaType.parse("application/xop+xml"))) {
                 parsed = SoapDocument.fromString(data.utf8());
             } else {
-                list.add(new Attachment(type, data));
+                list.add(new Attachment(new ContentId(idHeader), type, data));
             }
             nextPart = stream.readBoundary();
         }

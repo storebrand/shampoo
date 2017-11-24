@@ -6,10 +6,12 @@ import okio.ByteString;
 import java.util.Objects;
 
 public final class Attachment {
+    public final ContentId id;
     public final MediaType contentType;
     public final ByteString data;
 
-    public Attachment(MediaType contentType, ByteString data) {
+    public Attachment(ContentId id, MediaType contentType, ByteString data) {
+        this.id = id;
         this.contentType = contentType;
         this.data = data;
     }
@@ -19,12 +21,13 @@ public final class Attachment {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Attachment that = (Attachment) o;
-        return Objects.equals(contentType, that.contentType) &&
+        return Objects.equals(id, that.id) &&
+                Objects.equals(contentType, that.contentType) &&
                 Objects.equals(data, that.data);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(contentType, data);
+        return Objects.hash(id, contentType, data);
     }
 }
