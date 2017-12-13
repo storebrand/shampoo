@@ -97,7 +97,7 @@ public final class MTOM {
             String[] parts = headerString.trim().split(":", 2);
             if (parts.length == 2) {
                 List<String> list = map.getOrDefault(parts[0].trim(), List.empty());
-                map.put(parts[0].trim(), list.append(parts[1].trim()));
+                map.put(parts[0].trim().toLowerCase(), list.append(parts[1].trim()));
             }
         }
         return map;
