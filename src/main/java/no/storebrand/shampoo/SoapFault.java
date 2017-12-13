@@ -32,7 +32,7 @@ public final class SoapFault {
         StringWriter writer = new StringWriter();
         e.printStackTrace(new PrintWriter(writer));
         writer.flush();
-        return new SoapFault(code, e.getMessage(), Option.some(writer.toString()));
+        return new SoapFault(code, Option.of(e.getMessage()).getOrElse(e.getClass().getName()), Option.some(writer.toString()));
     }
 
     @Override
