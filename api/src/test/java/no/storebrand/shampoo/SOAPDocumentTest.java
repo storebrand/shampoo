@@ -38,4 +38,22 @@ public class SOAPDocumentTest {
         assertEquals(doc.ns, SoapDocument.SOAP_11);
         assertEquals(Optional.of("Hello"), doc.transform(JDOM2Utils::getText));
     }
+
+    @Test
+    public void differentMethodsOfParsingDoc() throws Exception {
+        Result<SoapFault, SoapDocument> docResult = SoapDocument.fromStream(getClass().getResourceAsStream("/soap/soap11success.xml"));
+        SoapDocument document = docResult.toOptional().get();
+        Result<SoapFault, SoapDocument> reparsed = SoapDocument.fromString(document.toCompactString());
+        assertTrue(reparsed.isSuccess());
+        reparsed = SoapDocument.fromString(document.toString());
+        assertTrue(reparsed.isSuccess());
+    }
+
+    @Test
+    public void parsingNullShouldNotCauseException() {
+        assertTrue(SoapDocument.fromString(null).isFailure());
+        assertTrue(SoapDocument.fromStream(null).isFailure());
+        assertTrue(SoapDocument.fromReader(null).isFailure());
+        assertTrue(SoapDocument.fromInputSource(null).isFailure());
+    }
 }
