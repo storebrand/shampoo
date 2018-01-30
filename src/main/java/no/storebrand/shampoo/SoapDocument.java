@@ -1,8 +1,5 @@
 package no.storebrand.shampoo;
 
-import io.vavr.collection.List;
-import io.vavr.control.Either;
-import io.vavr.control.Option;
 import org.jdom2.Document;
 import org.jdom2.Element;
 import org.jdom2.Namespace;
@@ -12,6 +9,10 @@ import org.jdom2.output.XMLOutputter;
 import org.xml.sax.InputSource;
 
 import java.io.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static no.storebrand.shampoo.JDOM2Utils.*;
 
@@ -37,35 +38,36 @@ public final class SoapDocument {
         return new SoapDocument(header, body, SOAP_12);
     }
 
-    public static Either<SoapFault, SoapDocument> fromString(String input) {
+    public static Result<SoapFault, SoapDocument> fromString(String input) {
         if (input == null || input.trim().isEmpty()) {
-            return Either.left(SoapFault.client("null or empty string"));
+            return Result.failure(SoapFault.client("null or empty string"));
         }
 
         return fromReader(new StringReader(input));
     }
 
-    public static Either<SoapFault, SoapDocument> fromStream(InputStream input) {
+    public static Result<SoapFault, SoapDocument> fromStream(InputStream input) {
         return fromInputSource(new InputSource(input));
     }
 
-    public static Either<SoapFault, SoapDocument> fromReader(Reader input) {
+    public static Result<SoapFault, SoapDocument> fromReader(Reader input) {
         return fromInputSource(new InputSource(input));
     }
 
-    public static Either<SoapFault, SoapDocument> fromInputSource(InputSource input) {
+    public static Result<SoapFault, SoapDocument> fromInputSource(InputSource input) {
         if (input == null) {
-            return Either.left(SoapFault.client("null stream"));
+            return Result.failure(SoapFault.client("null stream"));
         }
         try {
             Document doc = new SAXBuilder().build(input);
             return fromDocument(doc);
         } catch (Exception e) {
-            return Either.left(SoapFault.parse(e.getMessage()));
+            e.printStackTrace();
+            return Result.failure(SoapFault.parse(e.getMessage()));
         }
     }
 
-    public static Either<SoapFault, SoapDocument> fromDocument(Document doc) {
+    public static Result<SoapFault, SoapDocument> fromDocument(Document doc) {
         Namespace ns = doc.getRootElement().getNamespace();
         if (ns.equals(SOAP_11)) {
             return soap11(doc);
@@ -73,51 +75,52 @@ public final class SoapDocument {
         return soap12(doc);
     }
 
-    private static Either<SoapFault, SoapDocument> soap11(Document doc) {
-        Option<Element> maybeBodyish = getChild(doc.getRootElement(), "Body", SOAP_11);
-        Option<Element> maybeHeaderIsh = getChild(doc.getRootElement(), "Header", SOAP_11);
+    private static Result<SoapFault, SoapDocument> soap11(Document doc) {
+        Optional<Element> maybeBodyish = getChild(doc.getRootElement(), "Body", SOAP_11);
+        Optional<Element> maybeHeaderIsh = getChild(doc.getRootElement(), "Header", SOAP_11);
 
-        Option<SoapFault> maybeFault = maybeBodyish.flatMap(e -> getChild(e, "Fault", SOAP_11)).flatMap(e ->
+        Optional<SoapFault> maybeFault = maybeBodyish.flatMap(e -> getChild(e, "Fault", SOAP_11)).flatMap(e ->
                 getChildText(e, "faultcode").map(code -> {
-                    return new SoapFault(code, getChildText(e, "faultstring").getOrElse(""), getChild(e, "detail").flatMap(SoapDocument::faultDetail));
+                    return new SoapFault(code, getChildText(e, "faultstring").orElse(""), getChild(e, "detail").flatMap(SoapDocument::faultDetail));
                 })
         );
 
-        if (maybeFault.isDefined()) {
-            return Either.left(maybeFault.get());
+        if (maybeFault.isPresent()) {
+            return Result.failure(maybeFault.get());
         }
 
-        List<SoapHeader> maybeHeader = maybeHeaderIsh.map(e -> e.getChildren().stream().map(SoapHeader::new).collect(List.collector())).getOrElse(List.empty());
-        Option<SoapBody> maybeBody = maybeBodyish.flatMap(JDOM2Utils::firstChild).map(SoapBody::new);
+        List<SoapHeader> maybeHeader = maybeHeaderIsh.map(e -> e.getChildren().stream().map(SoapHeader::new).collect(Collectors.toList())).orElse(Collections.emptyList());
+        Optional<SoapBody> maybeBody = maybeBodyish.flatMap(JDOM2Utils::firstChild).map(SoapBody::new);
 
-        if (maybeBody.isEmpty() && maybeHeader.isEmpty()) {
-            return Either.left(SoapFault.client("Both soap:Header and soap:Body is empty."));
+        if (!maybeBody.isPresent() && maybeHeader.isEmpty()) {
+            return Result.failure(SoapFault.client("Both soap:Header and soap:Body is empty."));
         }
-        return maybeBody.map(b -> new SoapDocument(maybeHeader, b, SOAP_11)).toRight(SoapFault.parse("Missing Body"));
+        return Result.fromOptional(maybeBody.map(b -> new SoapDocument(maybeHeader, b, SOAP_11)), () -> SoapFault.parse("Missing Body"));
     }
 
-    private static Option<String> faultDetail(Element detail) {
-        return firstChild(detail).map(child -> new XMLOutputter(Format.getPrettyFormat()).outputString(child)).orElse(getText(detail));
+    private static Optional<String> faultDetail(Element detail) {
+        Optional<String> maybeDetail = firstChild(detail).map(child -> new XMLOutputter(Format.getPrettyFormat()).outputString(child));
+        return maybeDetail.isPresent() ? maybeDetail : getText(detail);
     }
 
-    private static Either<SoapFault, SoapDocument> soap12(Document doc) {
-        Option<Element> maybeBodyish = getChild(doc.getRootElement(), "Body", SOAP_12);
+    private static Result<SoapFault, SoapDocument> soap12(Document doc) {
+        Optional<Element> maybeBodyish = getChild(doc.getRootElement(), "Body", SOAP_12);
 
-        Option<SoapFault> maybeFault = maybeBodyish.flatMap(e -> getChild(e, "Fault", SOAP_12)).flatMap(e ->
-                        getGrandChildText(e, "Code", "Value", SOAP_12).map(code -> new SoapFault(code, getChildText(e, "Reason", SOAP_12).getOrElse(""), getChild(e, "Detail", SOAP_12).flatMap(SoapDocument::faultDetail)))
+        Optional<SoapFault> maybeFault = maybeBodyish.flatMap(e -> getChild(e, "Fault", SOAP_12)).flatMap(e ->
+                        getGrandChildText(e, "Code", "Value", SOAP_12).map(code -> new SoapFault(code, getChildText(e, "Reason", SOAP_12).orElse(""), getChild(e, "Detail", SOAP_12).flatMap(SoapDocument::faultDetail)))
         );
 
-        if (maybeFault.isDefined()) {
-            return Either.left(maybeFault.get());
+        if (maybeFault.isPresent()) {
+            return Result.failure(maybeFault.get());
         }
 
-        List<SoapHeader> maybeHeader = getChild(doc.getRootElement(), "Header", SOAP_12).map(e -> e.getChildren().stream().map(SoapHeader::new).collect(List.collector())).getOrElse(List.empty());
-        Option<SoapBody> maybeBody =  maybeBodyish.flatMap(JDOM2Utils::firstChild).map(SoapBody::new);
+        List<SoapHeader> maybeHeader = getChild(doc.getRootElement(), "Header", SOAP_12).map(e -> e.getChildren().stream().map(SoapHeader::new).collect(Collectors.toList())).orElse(Collections.emptyList());
+        Optional<SoapBody> maybeBody =  maybeBodyish.flatMap(JDOM2Utils::firstChild).map(SoapBody::new);
 
-        if (maybeBody.isEmpty() && maybeHeader.isEmpty()) {
-            return Either.left(SoapFault.client("Both soap12:Header and soap12:Body is empty."));
+        if (!maybeBody.isPresent() && maybeHeader.isEmpty()) {
+            return Result.failure(SoapFault.client("Both soap12:Header and soap12:Body is empty."));
         }
-        return maybeBody.map(b -> new SoapDocument(maybeHeader, b, SOAP_12)).toRight(SoapFault.parse("Missing Body"));
+        return Result.fromOptional(maybeBody.map(b -> new SoapDocument(maybeHeader, b, SOAP_12)), () -> SoapFault.parse("Missing Body"));
     }
 
     public void write(OutputStream stream) throws IOException {
@@ -130,7 +133,7 @@ public final class SoapDocument {
 
     public Document toXML() {
         return new Document(elem("Envelope", ns,
-                elem("Header", ns, header.map(h -> h.element.detach()).toJavaList()),
+                elem("Header", ns, header.stream().map(h -> h.element.detach()).collect(Collectors.toList())),
                 elem("Body", ns, body.body.detach())
         ));
     }
@@ -148,7 +151,7 @@ public final class SoapDocument {
         return toXMLString(Format.getPrettyFormat());
     }
 
-    public <A> Option<A> transform(FromElement<A> f) {
+    public <A> Optional<A> transform(FromElement<A> f) {
         return body.transform(f);
     }
 }

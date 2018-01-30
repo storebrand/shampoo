@@ -1,7 +1,8 @@
 package no.storebrand.shampoo;
 
-import io.vavr.collection.List;
 import okhttp3.Headers;
+
+import java.util.List;
 
 public final class SoapRequest {
     public final Headers headers;

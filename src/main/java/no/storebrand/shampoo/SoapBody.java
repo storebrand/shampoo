@@ -1,7 +1,8 @@
 package no.storebrand.shampoo;
 
-import io.vavr.control.Option;
 import org.jdom2.Element;
+
+import java.util.Optional;
 
 public final class SoapBody {
     public final Element body;
@@ -10,7 +11,7 @@ public final class SoapBody {
         this.body = body;
     }
     
-    public <A> Option<A> transform(FromElement<A> f) {
+    public <A> Optional<A> transform(FromElement<A> f) {
         return f.fromElement(body);
     }
 

@@ -1,10 +1,6 @@
 package no.storebrand.shampoo;
 
-import io.vavr.collection.List;
-import io.vavr.control.Either;
-import io.vavr.control.Option;
 import okhttp3.OkHttpClient;
-import org.jdom2.Element;
 import org.jdom2.Namespace;
 import org.junit.Test;
 
@@ -12,6 +8,8 @@ import javax.xml.ws.Endpoint;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.URI;
+import java.util.Collections;
+import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -41,17 +39,18 @@ public class SoapClientTest {
         Namespace ns = Namespace.getNamespace("http://echo");
         try {
             ToElement<String> toEchoRequest = s -> elem("echoRequest", ns, elem("input", ns, s));
-            Either<SoapFault, SoapDocument> responseOrError = client.execute(SoapRequest.soap11(
+            Result<SoapFault, SoapDocument> responseOrError = client.execute(SoapRequest.soap11(
                     SoapBody.from("Hello", toEchoRequest),
-                    List.empty(),
+                    Collections.emptyList(),
                     SoapAction.of("http://echo/Echo/echo")
             ));
             responseOrError.fold(fault -> {
+                System.out.println("fault = " + fault);
                 fail(fault.message);
                 return null;
             }, success -> {
-                Option<String> maybeString = success.transform(e -> JDOM2Utils.getChildText(e, "return"));
-                assertTrue("Did not match string", maybeString.isDefined());
+                Optional<String> maybeString = success.transform(e -> JDOM2Utils.getChildText(e, "return"));
+                assertTrue("Did not match string", maybeString.isPresent());
                 assertEquals("Hello", maybeString.get());
                 return null;
             });

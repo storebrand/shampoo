@@ -1,8 +1,5 @@
 package no.storebrand.shampoo;
 
-import io.vavr.collection.List;
-import io.vavr.control.Either;
-import io.vavr.control.Option;
 import okhttp3.MediaType;
 import okio.ByteString;
 
@@ -36,19 +33,19 @@ public final class MTOM {
         return Objects.hash(document, attachments);
     }
 
-    public static Either<SoapFault, MTOM> fromInputStream(String contentType, InputStream inputStream) throws IOException {
+    public static Result<SoapFault, MTOM> fromInputStream(String contentType, InputStream inputStream) throws IOException {
         Map<String, String> parameters = parseContentTypeParameters(contentType);
         MultipartStream stream = new MultipartStream(inputStream, parameters.get("boundary").getBytes(StandardCharsets.UTF_8), MultipartStream.DEFAULT_BUFSIZE);
 
-        Either<SoapFault, SoapDocument> parsed = Either.left(SoapFault.parse("No XOP data found"));
+        Result<SoapFault, SoapDocument> parsed = Result.failure(SoapFault.parse("No XOP data found"));
 
         ArrayList<Attachment> list = new ArrayList<>();
 
         boolean nextPart = stream.skipPreamble();
         while (nextPart) {
             Map<String, List<String>> headers = parseHeaders(stream.readHeaders());
-            String ctHeader = headers.get("content-type").head();
-            String idHeader = headers.get("content-id").head();
+            String ctHeader = headers.get("content-type").get(0);
+            String idHeader = headers.get("content-id").get(0);
             MediaType type = MediaType.parse(ctHeader);
             // create some output stream
             ByteString data = stream.readBody().readByteString();
@@ -61,7 +58,7 @@ public final class MTOM {
             nextPart = stream.readBoundary();
         }
 
-        return parsed.map(doc -> new MTOM(doc, List.ofAll(list)));
+        return parsed.map(doc -> new MTOM(doc, Collections.unmodifiableList(list)));
     }
 
     private static boolean isCompatible(MediaType type, MediaType toCheck) {
@@ -96,8 +93,9 @@ public final class MTOM {
         for (String headerString : split) {
             String[] parts = headerString.trim().split(":", 2);
             if (parts.length == 2) {
-                List<String> list = map.getOrDefault(parts[0].trim(), List.empty());
-                map.put(parts[0].trim().toLowerCase(), list.append(parts[1].trim()));
+                List<String> list = map.getOrDefault(parts[0].trim(), new ArrayList<>());
+                list.add(parts[1].trim());
+                map.put(parts[0].trim().toLowerCase(), list);
             }
         }
         return map;
