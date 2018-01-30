@@ -119,10 +119,6 @@ public final class JDOM2Utils {
         return getChild(element, name).map(e -> e.getChildren().stream().flatMap(item -> toStream(f.apply(item))).collect(Collectors.toList()));
     }
 
-    private static <A> Stream<A> toStream(Optional<A> opt) {
-        return opt.isPresent() ? Stream.of(opt.get()) : Stream.empty();
-    }
-
     public static <A> Optional<List<A>> mapChildrenOf(Element element, String name, Namespace ns, Function<Element, Optional<A>> f) {
         return getChild(element, name, ns).map(e -> e.getChildren().stream().flatMap(item -> toStream(f.apply(item))).collect(Collectors.toList()));
     }
@@ -189,5 +185,9 @@ public final class JDOM2Utils {
             element.addContent(e);
         }
         return element;
+    }
+
+    private static <A> Stream<A> toStream(Optional<A> opt) {
+        return opt.isPresent() ? Stream.of(opt.get()) : Stream.empty();
     }
 }
