@@ -1,38 +1,38 @@
 package no.storebrand.shampoo;
 
-import io.vavr.control.Option;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Optional;
 
 public final class SoapFault {
     public final String code;
     public final String message;
-    public final Option<String> detail;
+    public final Optional<String> detail;
 
-    public SoapFault(String code, String message, Option<String> detail) {
+    public SoapFault(String code, String message, Optional<String> detail) {
         this.code = code;
         this.message = message;
         this.detail = detail;
     }
 
     public static SoapFault client(String message) {
-        return new SoapFault("soap:Client", message, Option.none());
+        return new SoapFault("soap:Client", message, Optional.empty());
     }
 
     public static SoapFault server(String message) {
-        return new SoapFault("soap:Server", message, Option.none());
+        return new SoapFault("soap:Server", message, Optional.empty());
     }
 
     public static SoapFault parse(String message) {
-        return new SoapFault("parse", message, Option.none());
+        return new SoapFault("parse", message, Optional.empty());
     }
 
     public static SoapFault exception(String code, Throwable e) {
         StringWriter writer = new StringWriter();
         e.printStackTrace(new PrintWriter(writer));
         writer.flush();
-        return new SoapFault(code, Option.of(e.getMessage()).getOrElse(e.getClass().getName()), Option.some(writer.toString()));
+        return new SoapFault(code, Optional.of(e.getMessage()).orElse(e.getClass().getName()), Optional.of(writer.toString()));
     }
 
     @Override
@@ -60,7 +60,7 @@ public final class SoapFault {
         return "SoapFault{" +
                 "code='" + code + '\'' +
                 ", message='" + message + '\'' +
-                ", detail=" + detail.getOrElse("") +
+                ", detail=" + detail.orElse("") +
                 '}';
     }
 }

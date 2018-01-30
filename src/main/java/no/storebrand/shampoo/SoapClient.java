@@ -1,14 +1,14 @@
 package no.storebrand.shampoo;
 
-import io.vavr.collection.List;
-import io.vavr.control.Either;
-import io.vavr.control.Option;
 import okhttp3.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URI;
+import java.util.Collections;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 public final class SoapClient {
     private final Call.Factory client;
@@ -20,22 +20,22 @@ public final class SoapClient {
         this.apiURI = apiURI;
     }
 
-    public Either<SoapFault, SoapDocument> execute(SoapRequest req) {
+    public Result<SoapFault, SoapDocument> execute(SoapRequest req) {
         return request(req, (contentType, rb) -> soapDoc(req, rb));
     }
 
-    public Either<SoapFault, MTOM> executeMTOM(SoapRequest req) {
+    public Result<SoapFault, MTOM> executeMTOM(SoapRequest req) {
         return request(req, (contentType, rb) -> {
             if ("multipart".equals(rb.contentType().type())) {
                 return MTOM.fromInputStream(contentType, rb.byteStream());
             } else {
-                return soapDoc(req, rb).map(doc -> new MTOM(doc, List.empty()));
+                return soapDoc(req, rb).map(doc -> new MTOM(doc, Collections.emptyList()));
             }
         });
     }
 
-    private Either<SoapFault, SoapDocument> soapDoc(SoapRequest req, ResponseBody rb) throws IOException {
-        if (Option.of(rb.contentType()).exists(ct -> ct.subtype().contains("xml"))) {
+    private Result<SoapFault, SoapDocument> soapDoc(SoapRequest req, ResponseBody rb) throws IOException {
+        if (exists(Optional.ofNullable(rb.contentType()), (ct -> ct.subtype().contains("xml")))) {
             if (logger.isDebugEnabled()) {
                 String data = rb.string();
                 logger.debug("response data is:\n{}", data);
@@ -48,11 +48,11 @@ public final class SoapClient {
                 String data = rb.string();
                 logger.debug("response data is:\n{}", data);
             }
-            return Either.left(SoapFault.server("Not XML from " + req.action.action));
+            return Result.failure(SoapFault.server("Not XML from " + req.action.action));
         }
     }
 
-    private <A> Either<SoapFault, A> request(SoapRequest req, IOFunction<String, ResponseBody, Either<SoapFault, A>> fromBody) {
+    private <A> Result<SoapFault, A> request(SoapRequest req, IOFunction<String, ResponseBody, Result<SoapFault, A>> fromBody) {
         if (logger.isInfoEnabled()) {
             logger.info("SOAP request to {} ", apiURI);
             logger.info("Action is '{}'", req.action.action);
@@ -74,10 +74,14 @@ public final class SoapClient {
                 return fromBody.apply(resp.header("Content-Type"), body);
             }
         } catch (RuntimeException e) {
-            return Either.left(SoapFault.exception("soap:Client", e));
+            return Result.failure(SoapFault.exception("soap:Client", e));
         } catch (Exception e) {
-            return Either.left(SoapFault.exception("soap:Server", e));
+            return Result.failure(SoapFault.exception("soap:Server", e));
         }
+    }
+
+    private static <T> boolean exists(Optional<T> opt, Predicate<T> predicate) {
+        return opt.isPresent() && predicate.test(opt.get());
     }
 
     private MediaType toMediaType(SoapDocument doc) {

@@ -1,10 +1,7 @@
 package no.storebrand.shampoo;
 
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -30,6 +27,10 @@ public abstract class Result<L, R> implements Iterable<R>, Serializable {
             else
                 throw t;
         }
+    }
+
+    public static <L, R> Result<L, R> fromOptional(Optional<R> opt, Supplier<L> orLeft) {
+        return opt.isPresent() ? success(opt.get()) : failure(orLeft.get());
     }
 
     public static <A> A merge(Result<A, A> either) {
@@ -85,6 +86,18 @@ public abstract class Result<L, R> implements Iterable<R>, Serializable {
     @Override
     public Iterator<R> iterator() {
         return toList().iterator();
+    }
+
+    public Optional<R> toOptional() {
+        return fold(ignore -> Optional.empty(), Optional::<R>of);
+    }
+
+    public boolean isFailure() {
+        return fold(ignore -> true, ignore -> false);
+    }
+
+    public boolean isSuccess() {
+        return fold(ignore -> false, ignore -> true);
     }
 
     public final static class Success<L, R> extends Result<L, R> {

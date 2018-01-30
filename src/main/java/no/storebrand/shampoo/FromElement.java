@@ -1,13 +1,14 @@
 package no.storebrand.shampoo;
 
-import io.vavr.control.Option;
 import org.jdom2.Element;
+
+import java.util.Optional;
 
 @FunctionalInterface
 public interface FromElement<A> {
-    Option<A> fromElement(Element element);
+    Optional<A> fromElement(Element element);
 
     static <A> FromElement<A> constant(A value) {
-        return ignore -> Option.some(value);
+        return ignore -> Optional.ofNullable(value);
     }
 }
