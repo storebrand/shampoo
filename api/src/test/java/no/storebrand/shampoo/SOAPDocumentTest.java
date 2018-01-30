@@ -55,5 +55,6 @@ public class SOAPDocumentTest {
         assertTrue(SoapDocument.fromStream(null).isFailure());
         assertTrue(SoapDocument.fromReader(null).isFailure());
         assertTrue(SoapDocument.fromInputSource(null).isFailure());
+        assertTrue(SoapDocument.fromDocument(null).isFailure());
     }
 }

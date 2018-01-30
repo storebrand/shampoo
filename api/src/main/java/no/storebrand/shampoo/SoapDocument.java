@@ -73,6 +73,9 @@ public final class SoapDocument {
     }
 
     public static Result<SoapFault, SoapDocument> fromDocument(Document doc) {
+        if (doc == null) {
+            return Result.failure(SoapFault.client("null document"));
+        }
         Namespace ns = doc.getRootElement().getNamespace();
         if (ns.equals(SOAP_11)) {
             return soap11(doc);
