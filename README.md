@@ -21,17 +21,19 @@ Are you using shampoo? Please consider opening a pull request to list your organ
 # Example
 
 ```java
-package no.storebrand.shampoo;
+package org.example;
 
-import io.vavr.collection.*;
+import no.storebrand.shampoo.*;
+import no.storebrand.shampoo.jdk.UrlConnectionSoapClient;
+
 import static JDOM2Utils.*;
 
 public class Main {
     public static void main(String[] args){        
-        SoapClient client = new SoapClient(httpClient, URI.create(String.format("http://example.com/echo", port)));
-        Either<SoapFault, SoapDocument> result = client.execute(SoapRequest.soap11(
+        SoapClient client = new UrlConnectionSoapClient(URI.create(String.format("http://example.com/echo", port)));
+        Result<SoapFault, SoapDocument> result = client.execute(SoapRequest.soap11(
                 new SoapBody(elem("echo", "value")),
-                empty(),
+                java.util.Collections.emptyList(),
                 SoapAction.of("http://example.com/echo")                 
         ));      
         
