@@ -1,5 +1,7 @@
 package no.storebrand.shampoo;
 
+import java.util.Objects;
+
 public final class SoapAction {
     public static final SoapAction empty = new SoapAction("");
 
@@ -10,22 +12,24 @@ public final class SoapAction {
     }
 
     public static SoapAction of(String action) {
-        return new SoapAction(action);
+        if (action == null || action.trim().isEmpty()) {
+            return empty;
+        }
+        return new SoapAction(action.trim());
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-
         SoapAction that = (SoapAction) o;
-
-        return action.equals(that.action);
+        return Objects.equals(action, that.action);
     }
 
     @Override
     public int hashCode() {
-        return action.hashCode();
+
+        return Objects.hash(action);
     }
 
     @Override

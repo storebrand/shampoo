@@ -47,10 +47,16 @@ public final class SoapDocument {
     }
 
     public static Result<SoapFault, SoapDocument> fromStream(InputStream input) {
+        if (input == null) {
+            return Result.failure(SoapFault.client("null stream"));
+        }
         return fromInputSource(new InputSource(input));
     }
 
     public static Result<SoapFault, SoapDocument> fromReader(Reader input) {
+        if (input == null) {
+            return Result.failure(SoapFault.client("null stream"));
+        }
         return fromInputSource(new InputSource(input));
     }
 
@@ -67,6 +73,9 @@ public final class SoapDocument {
     }
 
     public static Result<SoapFault, SoapDocument> fromDocument(Document doc) {
+        if (doc == null) {
+            return Result.failure(SoapFault.client("null document"));
+        }
         Namespace ns = doc.getRootElement().getNamespace();
         if (ns.equals(SOAP_11)) {
             return soap11(doc);
